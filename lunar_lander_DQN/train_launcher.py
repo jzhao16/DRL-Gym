@@ -18,10 +18,10 @@ class DQN(object):
         self.a_dim = a_dim
         self.batch_size = batch_size
         self.lr = learning_rate
-        
+
     def _build_net(self):
         model = keras.Sequential([
-                keras.layers.Dense(120, input_dim=self.s_dim, activation='relu'),
+                keras.layers.Dense(120, input_dim=self.s_dim, activation='relu'),  # equivalent to input_shape=(8, ) or batch_input_shape=(None, 8)
                 keras.layers.Dense(64, activation='relu'),
                 keras.layers.Dense(self.a_dim, activation='linear')])
         model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=self.lr))
@@ -56,39 +56,36 @@ class ReplayBuffer(object):
 def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim):
 
     samples = replay_buffer.sample_batch(batch_size)
-    state_batch = np.array([_[0] for _ in samples])        # (32, 8) 
-    action_batch = np.array([_[1] for _ in samples])      # (32,1)
+    state_batch = np.array([_[0] for _ in samples])        # (32, 8)
+    action_batch = np.array([_[1] for _ in samples])      # (32,)
     reward_batch = np.array([_[2] for _ in samples])      # (32,)
-    next_state_batch = np.array([_[3] for _ in samples])   # (32, 8) 
+    next_state_batch = np.array([_[3] for _ in samples])   # (32, 8)
     done_batch = np.array([_[4] for _ in samples])
 
-    state_batch = np.squeeze(state_batch)
-    next_state_batch = np.squeeze(next_state_batch)
-
-    targets = reward_batch + gamma*(np.amax(dqn.predict_on_batch(next_state_batch), axis=1))*(1-done_batch)  # Q(s,a)
-    targets_full = dqn.predict_on_batch(state_batch)  
+    targets = reward_batch + gamma*(np.amax(dqn.predict_on_batch(next_state_batch), axis=1))*(1-done_batch)  # Q(s,a) (32,)
+    targets_full = dqn.predict_on_batch(state_batch)   #(32, 4)
     targets_full = targets_full.numpy()   # Convert tensor to numpy object
     idx = np.array([i for i in range(batch_size)])
-    targets_full[[idx], [action_batch]] = targets  # assignment 
+    targets_full[[idx], [action_batch]] = targets  # assignment
 
     dqn.fit(state_batch, targets_full, epochs=1, verbose=0)
-    
 
-def train(env, dqn, s_dim, a_dim, args):    
+
+def train(env, dqn, s_dim, a_dim, args):
     # initialize replay memory
     replay_buffer = ReplayBuffer(int(args['buffer_size']))
 
     epsilon = float(args['epsilon'])
-    
+
     score = []
     for i in range(int(args['max_episodes'])):
-        state = env.reset()     # Initialize state
+        state = env.reset()     # Initialize state (8, ) , needs to be converted to (8, 1) for input in the model
         ep_reward = 0.0
-        
-        for j in range(args['max_episodes_len']): 
+
+        for j in range(args['max_episodes_len']):
 
             epsilon = max(epsilon, 0.01)
-            ## Epsilon-Greedy 
+            ## Epsilon-Greedy
             if np.random.rand() > epsilon:
                 q_value = dqn.predict(np.reshape(state, [1, s_dim]))
                 action = np.argmax(q_value[0])
@@ -99,12 +96,12 @@ def train(env, dqn, s_dim, a_dim, args):
             #print(f"action: {action}")
             next_state, reward, done, info = env.step(action)
             ep_reward += reward
-           
-            replay_buffer.add(tuple(state.reshape((s_dim,))),
-                                action,
-                                reward,
-                                tuple(next_state.reshape((s_dim,))),
-                                done)
+
+            replay_buffer.add(state.reshape((s_dim,)),
+                              action,
+                              reward,
+                              next_state.reshape((s_dim,)),  #(1, 8) to (8, )
+                              done)
 
             if replay_buffer.size() > int(args['batch_size']):
                 learn_from_batch(replay_buffer, dqn, int(args['batch_size']), float(args['gamma']), s_dim, a_dim)
