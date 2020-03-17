@@ -68,8 +68,9 @@ def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim):
 
     targets = reward_batch + gamma*(np.amax(dqn.predict_on_batch(next_state_batch), axis=1))*(1-done_batch)
     targets_full = dqn.predict_on_batch(state_batch)
+    targets_full = targets_full.numpy()
     ind = np.array([i for i in range(batch_size)])
-    targets_full[[ind], [action_batch]] = targets
+    targets_full[[ind], [action_batch]] = targets  # assignment 
 
     dqn.fit(state_batch, targets_full, epochs=1, verbose=0)
     
