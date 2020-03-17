@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import tensorflow as tf
+from tensorflow import keras
 import numpy as np
 import gym
-from keras import Sequential, regularizers, optimizers
-from keras.layers import Dense
 from collections import deque
 import random
 import pprint as pp
+import matplotlib.pyplot as plt
 
 import argparse
 
@@ -19,11 +20,11 @@ class DQN(object):
         self.lr = learning_rate
         
     def _build_net(self):
-        model = Sequential()
-        model.add(Dense(120, input_dim=self.s_dim, activation='relu'))
-        model.add(Dense(64, activation='relu'))
-        model.add(Dense(self.a_dim, activation='linear'))
-        model.compile(loss='mse', optimizer=optimizers.adam(lr=self.lr))
+        model = keras.Sequential([
+                keras.layers.Dense(120, input_dim=self.s_dim, activation='relu'),
+                keras.layers.Dense(64, activation='relu'),
+                keras.layers.Dense(self.a_dim, activation='linear')])
+        model.compile(loss='mse', optimizer=keras.optimizers.Adam(lr=self.lr))
         return model
 
 class ReplayBuffer(object):
@@ -118,6 +119,8 @@ def train(env, dqn, s_dim, a_dim, args):
         score.append(ep_reward)
         print(f"========== Episode {i+1}, Total {j+1} Rounds : Reward {ep_reward:.3f}  =========")
         print(f"Average reward of last 100 episodes: {np.mean(score[-100:]):.3f}")
+    plt.plot([i+1 for i in range(len(loss))], score[::1])
+    plt.show()
 
 
 def main(args):
@@ -132,12 +135,12 @@ def main(args):
     dqn = DQN(s_dim, a_dim, int(args['batch_size']), float(args['lr']))._build_net()
     train(env, dqn, s_dim, a_dim, args)
     # save model
-    dqn.save('dqn.h5')
+    dqn.save('model/dqn-2.h5')
     env.close()
         
         
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="provide arguments for DDPG agent")
+    parser = argparse.ArgumentParser(description="provide arguments for DQN agent")
 
     # agent parameters
     parser.add_argument("--lr", help="dqn network learning rate", default=0.001)
