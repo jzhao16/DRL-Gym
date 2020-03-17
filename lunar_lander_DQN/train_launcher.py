@@ -20,8 +20,8 @@ class DQN(object):
         
     def _build_net(self):
         model = Sequential()
-        model.add(Dense(120, input_dim=self.s_dim, kernel_initializer='random_uniform', kernel_regularizer=regularizers.l2(0.01), activation='relu'))
-        model.add(Dense(64, kernel_initializer='random_uniform', kernel_regularizer=regularizers.l2(0.01), activation='relu'))
+        model.add(Dense(120, input_dim=self.s_dim, activation='relu'))
+        model.add(Dense(64, activation='relu'))
         model.add(Dense(self.a_dim, activation='linear'))
         model.compile(loss='mse', optimizer=optimizers.adam(lr=self.lr))
         return model
@@ -131,6 +131,8 @@ def main(args):
     a_dim = 4
     dqn = DQN(s_dim, a_dim, int(args['batch_size']), float(args['lr']))._build_net()
     train(env, dqn, s_dim, a_dim, args)
+    # save model
+    dqn.save('dqn.h5')
     env.close()
         
         
@@ -148,7 +150,6 @@ if __name__ == '__main__':
     # run parameters
     parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=500)
     parser.add_argument("--max_episodes_len", help="max length of 1 episode", default=2000)    # defult = 100
-    parser.add_argument("--summary_dir", help="directory for storing tensorboard info", default='./results')
 
     args_ = vars(parser.parse_args())
     pp.pformat(args_)
