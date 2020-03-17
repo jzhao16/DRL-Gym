@@ -4,9 +4,9 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
-import gym
 from collections import deque
 import random
+import gym
 import pprint as pp
 import matplotlib.pyplot as plt
 
@@ -55,7 +55,6 @@ class ReplayBuffer(object):
 
 def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim):
 
-    #print('---------- Learn from Batch ----------')
     samples = replay_buffer.sample_batch(batch_size)
     state_batch = np.array([_[0] for _ in samples])        # (32, 8) 
     action_batch = np.array([_[1] for _ in samples])      # (32,1)
@@ -66,11 +65,11 @@ def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim):
     state_batch = np.squeeze(state_batch)
     next_state_batch = np.squeeze(next_state_batch)
 
-    targets = reward_batch + gamma*(np.amax(dqn.predict_on_batch(next_state_batch), axis=1))*(1-done_batch)
-    targets_full = dqn.predict_on_batch(state_batch)
-    targets_full = targets_full.numpy()
-    ind = np.array([i for i in range(batch_size)])
-    targets_full[[ind], [action_batch]] = targets  # assignment 
+    targets = reward_batch + gamma*(np.amax(dqn.predict_on_batch(next_state_batch), axis=1))*(1-done_batch)  # Q(s,a)
+    targets_full = dqn.predict_on_batch(state_batch)  
+    targets_full = targets_full.numpy()   # Convert tensor to numpy object
+    idx = np.array([i for i in range(batch_size)])
+    targets_full[[idx], [action_batch]] = targets  # assignment 
 
     dqn.fit(state_batch, targets_full, epochs=1, verbose=0)
     
