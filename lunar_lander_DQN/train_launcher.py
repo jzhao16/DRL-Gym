@@ -9,7 +9,7 @@ from collections import deque
 import random
 import gym
 import pprint as pp
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 import argparse
 
@@ -117,8 +117,8 @@ def train(env, dqn, s_dim, a_dim, args):
         score.append(ep_reward)
         print(f"========== Episode {i+1}, Total {j+1} Rounds : Reward {ep_reward:.3f}  =========")
         print(f"Average reward of last 100 episodes: {np.mean(score[-100:]):.3f}")
-    plt.plot([i+1 for i in range(len(loss))], score[::1])
-    plt.show()
+    #plt.plot([i+1 for i in range(len(score))], score[::1])
+    #plt.show()
 
 
 def main(args):
