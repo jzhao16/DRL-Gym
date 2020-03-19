@@ -8,6 +8,7 @@ import numpy as np
 from collections import deque
 import random
 import gym
+import time 
 import pprint as pp
 #import matplotlib.pyplot as plt
 
@@ -75,14 +76,13 @@ def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim):
 def train(env, dqn, s_dim, a_dim, args):
     # initialize replay memory
     replay_buffer = ReplayBuffer(int(args['buffer_size']))
-
     epsilon = float(args['epsilon'])
 
     score = []
     for i in range(int(args['max_episodes'])):
         state = env.reset()     # Initialize state (8, ) , needs to be converted to (8, 1) for input in the model
         ep_reward = 0.0
-
+        start_time = time.time()
         for j in range(args['max_episodes_len']):
 
             epsilon = max(epsilon, 0.01)
@@ -113,9 +113,10 @@ def train(env, dqn, s_dim, a_dim, args):
             if done:
             	#print(f"Episode finished after {j+1} steps")
             	break
-
+        
         score.append(ep_reward)
-        print(f"========== Episode {i+1}, Total {j+1} Rounds : Reward {ep_reward:.3f}  =========")
+        end_time = time.time()
+        print(f"========== Episode {i+1}, Total {j+1} Rounds,  Reward {ep_reward:.3f}, Time {end_time - start_time:.3f}  =========")
         print(f"Average reward of last 100 episodes: {np.mean(score[-100:]):.3f}")
     #plt.plot([i+1 for i in range(len(score))], score[::1])
     #plt.show()
@@ -124,8 +125,6 @@ def train(env, dqn, s_dim, a_dim, args):
 def main(args):
     # simulated environment
     env = gym.make('LunarLander-v2')
-    env.seed(100)
-    np.random.seed(100)
     # state total dimension  
     s_dim = 8
     # action (total number of choice)
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     parser.add_argument("--epsilon", help="epsilon-greedy parameter", default=0.95)
     parser.add_argument("--epsilon_decay", help="epsilon-greedy parameter", default=0.995)
     parser.add_argument("--buffer_size", help="max size of the replay buffer", default=1000000)
-    parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=64)  # default = 64
+    parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=32)  # default = 64
 
     # run parameters
     parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=500)
