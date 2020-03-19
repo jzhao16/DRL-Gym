@@ -3,3 +3,6 @@ model
 
 ## Keras model
 *.h5
+
+## Log file
+log
