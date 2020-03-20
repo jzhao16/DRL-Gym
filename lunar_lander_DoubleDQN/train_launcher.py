@@ -110,7 +110,7 @@ def train(env, dqn_online, dqn_target, s_dim, a_dim, args):
                               done)
 
             if replay_buffer.size() > int(args['batch_size']):
-                loss = learn_from_batch(replay_buffer, dqn_online, dqn_target, int(args['batch_size']), float(args['gamma']), s_dim, a_dim)
+                loss = learn_from_batch(replay_buffer, dqn_online, dqn_target, int(args['batch_size']), float(args['gamma']), s_dim, a_dim, float(args['tau']))
                 ep_loss += loss
             # move to next state 
             state = next_state
@@ -151,6 +151,8 @@ if __name__ == '__main__':
     parser.add_argument("--gamma", help="discount factor for critic updates", default=0.99)
     parser.add_argument("--epsilon", help="epsilon-greedy parameter", default=0.95)
     parser.add_argument("--epsilon_decay", help="epsilon-greedy parameter", default=0.995)
+    parser.add_argument("--tau", help="network update rate", default=0.05)
+
     parser.add_argument("--buffer_size", help="max size of the replay buffer", default=1000000)
     parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=64)  # default = 64
 
