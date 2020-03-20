@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
 import gym
-from keras import Sequential, regularizers, optimizers
-from keras.layers import Dense
-from keras.models import load_model
+import numpy as np
+import tensorflow 
+from tensorflow.keras.models import load_model
 from collections import deque
 import random
 import pprint as pp
