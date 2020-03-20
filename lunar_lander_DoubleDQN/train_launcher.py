@@ -55,7 +55,7 @@ class ReplayBuffer(object):
         self.count = 0
 
 
-def learn_from_batch(replay_buffer, dqn, batch_size, gamma, s_dim, a_dim, tau):
+def learn_from_batch(replay_buffer, dqn_online, dqn_target, batch_size, gamma, s_dim, a_dim, tau):
 
     samples = replay_buffer.sample_batch(batch_size)
     state_batch = np.array([_[0] for _ in samples])        # (32, 8)
