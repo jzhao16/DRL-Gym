@@ -207,12 +207,10 @@ class ReplayBuffer(object):
 def build_summaries():
     episode_reward = tf.Variable(0.)
     tf.compat.v1.summary.scalar("reward", episode_reward)
-    episode_max_q = tf.Variable(0.)
-    tf.compat.v1.summary.scalar("max_q_value", episode_max_q)
     critic_loss = tf.Variable(0.)
     tf.compat.v1.summary.scalar("critic_loss", critic_loss)
 
-    summary_vars = [episode_reward, episode_max_q, critic_loss]
+    summary_vars = [episode_reward, critic_loss]
     summary_ops = tf.compat.v1.summary.merge_all()
     return summary_ops, summary_vars
 
@@ -308,11 +306,11 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
 
             evaluate_every = 100  # default 50
             if (j + 1) % evaluate_every == 0:
-                logger.info(f"========== Episode {current_step // 100}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Q_value {ep_q_value:.3f}, Loss {ep_critic_loss:.3f} =========")
+                logger.info(f"========== Episode {current_step // 100}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
                 ep_reward = 0.0
                 ep_critic_loss = 0.0
 
-            summary_str = sess.run(summary_ops, feed_dict={summary_vars[0]: ep_reward, summary_vars[1]: ep_q_value, summary_vars[2]: ep_critic_loss})
+            summary_str = sess.run(summary_ops, feed_dict={summary_vars[0]: ep_reward, summary_vars[1]: ep_critic_loss})
             writer.add_summary(summary_str, i)
 
             end_time = time.time()
