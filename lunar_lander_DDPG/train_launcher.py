@@ -204,25 +204,6 @@ class ReplayBuffer(object):
         self.count = 0
 
 
-class StochasticPolicy:
-    """noise for action"""
-    def __init__(self, a_dim, action_item_num, epsilon=0.4, sigma=0.05): 
-        self.a_dim = a_dim
-        self.action_item_num = action_item_num
-        self.epsilon = epsilon
-        self.sigma = sigma
-
-    def output(self, action_weight): # action_weight (1, 4, 30)
-        x = np.random.randn(self.a_dim)
-        noise = x/np.linalg.norm(x)*self.sigma  
-        action_weight_new =[]
-        for w, n in zip(action_weight[0], noise.reshape(self.action_item_num, -1)):
-            w = np.add(w, n * np.random.choice([0, 1], p=[1-self.epsilon, self.epsilon]))
-            w = w/np.linalg.norm(w)
-            action_weight_new.append(w)
-        return np.array(action_weight_new, dtype=np.float32)[np.newaxis,:]
-
-
 def build_summaries():
     episode_reward = tf.Variable(0.)
     tf.compat.v1.summary.scalar("reward", episode_reward)
@@ -236,7 +217,7 @@ def build_summaries():
     return summary_ops, summary_vars
 
 
-def learn_from_batch(replay_buffer, actor, critic, generator, batch_size, s_dim, a_dim):
+def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
 
     #print('---------- Learn from Batch ----------')
     samples = replay_buffer.sample_batch(batch_size)
@@ -274,7 +255,7 @@ def learn_from_batch(replay_buffer, actor, critic, generator, batch_size, s_dim,
     return critic_loss
 
 
-def train(sess, env, generator, actor, critic, exploration, s_dim, a_dim, global_step_tensor, args):
+def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
     # set up summary operators
     summary_ops, summary_vars = build_summaries()
     sess.run(tf.compat.v1.global_variables_initializer())
@@ -315,7 +296,7 @@ def train(sess, env, generator, actor, critic, exploration, s_dim, a_dim, global
                               done)
             
             if replay_buffer.size() > int(args['batch_size']):
-                critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), float(args['gamma']), s_dim, a_dim, float(args['tau']))
+                critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), s_dim, a_dim)
                 ep__critic_loss += loss
 
             # move to next state 
@@ -367,9 +348,9 @@ def main(args):
         critic = Critic(sess, s_dim, a_dim, actor.get_num_trainable_vars(),
                         float(args['gamma']), float(args['tau']), float(args['critic_lr']))
 
-        exploration = StochasticPolicy(a_dim, int(args['action_item_num']))
+        #exploration = StochasticPolicy(a_dim, int(args['action_item_num']))
 
-        train(sess, env, actor, critic, exploration, s_dim, a_dim, global_step_tensor, args)
+        train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args)
         
 
 if __name__ == '__main__':
