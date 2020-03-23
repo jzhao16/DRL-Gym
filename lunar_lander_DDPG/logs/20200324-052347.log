@@ -1,0 +1,10 @@
+[2020-03-23 21:23:47,726][default:INFO][train_launcher:<module>]:{'actor_lr': 0.001,
+ 'batch_size': 64,
+ 'buffer_size': 1000000,
+ 'critic_lr': 0.001,
+ 'gamma': 0.75,
+ 'max_episodes': 500,
+ 'max_episodes_len': 1000,
+ 'restore': False,
+ 'summary_dir': './results',
+ 'tau': 0.001}

@@ -232,11 +232,7 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     target_q_batch = critic.predict_target(next_state_batch.reshape((-1, s_dim)), next_action_batch.reshape((-1, a_dim)))  # (32, 1)
 
     # y_batch is Q(s,a) calcualed from Bellman's equation
-    # y_batch = np.add(target_q_batch * critic.gamma, reward_batch[:,np.newaxis])  # (32, 1)
-    print(f"reward batch : {reward_batch.shape}")
-    print(f"target q batch : {target_q_batch.shape}")
-    print(f"done batch : {done_batch.shape}")
-    y_batch = reward_batch + critic.gamma*(target_q_batch)*(1-done_batch)
+    y_batch = np.add(target_q_batch * critic.gamma, (reward_batch * done_batch)[:,np.newaxis])  # (32, 1)
 
     # train Critic online network (learn an action-value function Q(state, action)), q_value seems to be the functional approximation of y_batch
     q_value, critic_loss, _ = critic.train(state_batch, action_batch, y_batch)
@@ -246,7 +242,6 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
 
     # action_gradient
     action_gradient_batch = critic.action_gradients(state_batch, action_batch_for_gradients.reshape((-1, a_dim)))   # action_gradient_batch, list, size = 1
-
     actor.train(state_batch, action_gradient_batch[0])
 
     # update target networks
@@ -285,7 +280,6 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             start_time = time.time()  
 
             action = actor.predict(np.reshape(state, [1, s_dim]))
-            print(f"action: {action}")
             ## noise    
             
             next_state, reward, done, info = env.step(action[0])
@@ -299,13 +293,13 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             
             if replay_buffer.size() > int(args['batch_size']):
                 critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), s_dim, a_dim)
-                ep_critic_loss += loss
+                ep_critic_loss += critic_loss
 
             # move to next state 
             state = next_state
             ## global step += 1
             current_step = tf.compat.v1.train.global_step(sess, global_step_tensor) - 1 
-            print('current_step is %d' %current_step) 
+            #print('current_step is %d' %current_step) 
 
             evaluate_every = 100  # default 50
             if (j + 1) % evaluate_every == 0:
