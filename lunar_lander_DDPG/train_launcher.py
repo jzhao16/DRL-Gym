@@ -301,21 +301,17 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             current_step = tf.compat.v1.train.global_step(sess, global_step_tensor) - 1 
             #print('current_step is %d' %current_step) 
 
-            evaluate_every = 100  # default 50
-            if (j + 1) % evaluate_every == 0:
-                logger.info(f"========== Episode {current_step // 100}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
-                ep_reward = 0.0
-                ep_critic_loss = 0.0
-
             summary_str = sess.run(summary_ops, feed_dict={summary_vars[0]: ep_reward, summary_vars[1]: ep_critic_loss})
             writer.add_summary(summary_str, i)
 
             end_time = time.time()
+
+            if done:
+                break
             #print(f"--- Total Training Time : {(end_time - start_time):.3f} seconds ---")
-            
-        # write the saver
+                    
+        logger.info(f"========== Episode {current_step // 100}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
         # save the model to the checkpoint file
-        # if (current_step+1)%args['max_episodes_len'] == 0: 
         path = saver.save(sess, './model/drl-model', global_step=current_step) 
     writer.close()
 
