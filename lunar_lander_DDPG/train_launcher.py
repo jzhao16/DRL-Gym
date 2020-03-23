@@ -284,13 +284,14 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             start_time = time.time()  
 
             action = actor.predict(np.reshape(state, [1, s_dim]))
+            print(f"action: {action}")
             ## noise    
             
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(action[0])
             ep_reward += reward
            
             replay_buffer.add(state.reshape((s_dim,)),
-                              action,
+                              action.reshape((a_dim,)),
                               reward,
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
