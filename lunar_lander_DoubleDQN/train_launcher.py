@@ -139,7 +139,7 @@ def main(args):
     dqn_target = DQN(s_dim, a_dim, int(args['batch_size']), float(args['lr']))._build_net()
     train(env, dqn_online, dqn_target, s_dim, a_dim, args)
     # save model
-    dqn.save('double_dqn.h5')
+    dqn_online.save('double_dqn.h5')
     env.close()
         
         

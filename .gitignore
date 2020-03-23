@@ -5,4 +5,4 @@ model
 *.h5
 
 ## Log file
-log
+*.log
