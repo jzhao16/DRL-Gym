@@ -6,3 +6,4 @@ model
 
 ## Log file
 *.log
+log*
