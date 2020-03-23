@@ -219,10 +219,10 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
 
     #print('---------- Learn from Batch ----------')
     samples = replay_buffer.sample_batch(batch_size)
-    state_batch = np.asarray([_[0] for _ in samples])        # (32, 360) 
-    action_batch = np.asarray([_[1] for _ in samples])       # (32, 120)
-    reward_batch = np.asarray([_[2] for _ in samples])       # (32,)
-    next_state_batch = np.asarray([_[3] for _ in samples])
+    state_batch = np.array([_[0] for _ in samples])        # (32, 360) 
+    action_batch = np.array([_[1] for _ in samples])       # (32, 120)
+    reward_batch = np.array([_[2] for _ in samples])       # (32,)
+    next_state_batch = np.array([_[3] for _ in samples])
     done_batch = np.array([_[4] for _ in samples])
 
     # The dimension of action_weight_batch is (batch_size, action_item_num, embedding), (32, 4, 30)
@@ -286,7 +286,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             ep_reward += reward
            
             replay_buffer.add(state.reshape((s_dim,)),
-                              action.reshape((a_dim,)),
+                              action,
                               reward,
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
