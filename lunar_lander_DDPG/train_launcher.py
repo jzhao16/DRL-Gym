@@ -227,7 +227,8 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
 
     # The dimension of action_weight_batch is (batch_size, action_item_num, embedding), (32, 4, 30)
     next_action_batch = actor.predict_target(state_batch) 
-    
+    #print(f"action_batch : {action_batch.shape}")
+    #print(f"next_action_batch : {next_action_batch.shape}") 
     # Q(s',a')
     target_q_batch = critic.predict_target(next_state_batch.reshape((-1, s_dim)), next_action_batch.reshape((-1, a_dim)))  # (32, 1)
 
