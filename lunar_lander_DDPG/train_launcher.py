@@ -286,7 +286,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             ep_reward += reward
            
             replay_buffer.add(state.reshape((s_dim,)),
-                              action.reshpe((a_dim,)),
+                              action.reshape((a_dim,)),
                               reward,
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
@@ -310,7 +310,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
                 break
             #print(f"--- Total Training Time : {(end_time - start_time):.3f} seconds ---")
                     
-        logger.info(f"========== Episode {current_step // 100}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
+        logger.info(f"========== Episode {i}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
         # save the model to the checkpoint file
         path = saver.save(sess, './model/drl-model', global_step=current_step) 
     writer.close()
