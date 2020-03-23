@@ -31,7 +31,7 @@ class Actor(object):
         with tf.compat.v1.variable_scope(self.scope):
             self.is_training = tf.compat.v1.placeholder(tf.bool, name="is_training")
             # estimator actor network
-            self.state, self.action = self._build_net("estimator_actor")
+            self.state, self.action = self._build_net("online_actor")
             self.network_params = tf.compat.v1.trainable_variables()    # len = 4 
             # self.network_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='estimator_actor')
 
@@ -115,7 +115,7 @@ class Critic(object):
 
         with tf.compat.v1.variable_scope(self.scope):
             # estimator critic network
-            self.state, self.action, self.q_value = self._build_net("estimator_critic")
+            self.state, self.action, self.q_value = self._build_net("online_critic")
             self.network_params = tf.compat.v1.trainable_variables()[self.num_actor_vars:]
             # self.network_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="estimator_critic")
 
@@ -233,6 +233,9 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
 
     # y_batch is Q(s,a) calcualed from Bellman's equation
     # y_batch = np.add(target_q_batch * critic.gamma, reward_batch[:,np.newaxis])  # (32, 1)
+    print(f"reward batch : {reward_batch.shape}")
+    print(f"target q batch : {target_q_batch.shape}")
+    print(f"done batch : {done_batch.shape}")
     y_batch = reward_batch + critic.gamma*(target_q_batch)*(1-done_batch)
 
     # train Critic online network (learn an action-value function Q(state, action)), q_value seems to be the functional approximation of y_batch
@@ -296,7 +299,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             
             if replay_buffer.size() > int(args['batch_size']):
                 critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), s_dim, a_dim)
-                ep__critic_loss += loss
+                ep_critic_loss += loss
 
             # move to next state 
             state = next_state
@@ -314,7 +317,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             writer.add_summary(summary_str, i)
 
             end_time = time.time()
-            print(f"--- Total Training Time : {(end_time - start_time):.3f} seconds ---")
+            #print(f"--- Total Training Time : {(end_time - start_time):.3f} seconds ---")
             
         # write the saver
         # save the model to the checkpoint file
