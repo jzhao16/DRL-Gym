@@ -286,7 +286,7 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
             ep_reward += reward
            
             replay_buffer.add(state.reshape((s_dim,)),
-                              action,
+                              action.reshpe((a_dim,)),
                               reward,
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
