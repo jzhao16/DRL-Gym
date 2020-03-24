@@ -7,3 +7,5 @@ model
 ## Log file
 *.log
 log*
+
+results
