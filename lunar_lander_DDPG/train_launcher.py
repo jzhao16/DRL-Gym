@@ -254,11 +254,11 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     target_q_batch = critic.predict_target(next_state_batch.reshape((-1, s_dim)), next_action_batch.reshape((-1, a_dim)))  # (32, 1)
 
     # y_batch is Q(s,a) calcualed from Bellman's equation
-    y_batch = np.add(target_q_batch * critic.gamma, (reward_batch * done_batch)[:,np.newaxis])  # (32, 1)
+    y_batch = np.add(reward_batch, np.squeeze(target_q_batch) * critic.gamma * (1-done_batch))[:,np.newaxis]  # (32, 1)
 
     # train Critic online network (learn an action-value function Q(state, action)), q_value seems to be the functional approximation of y_batch
     q_value, critic_loss, _ = critic.train(state_batch, action_batch, y_batch)
-
+    
     # train actor
     action_batch_for_gradients = actor.predict(state_batch)
 
@@ -273,7 +273,7 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     return critic_loss
 
 
-def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
+def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args):
     # set up summary operators
     summary_ops, summary_vars = build_summaries()
     sess.run(tf.compat.v1.global_variables_initializer())
