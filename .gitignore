@@ -8,4 +8,4 @@ model
 *.log
 log*
 
-results
+*/results
