@@ -203,6 +203,27 @@ class ReplayBuffer(object):
         self.buffer.clear()
         self.count = 0
 
+class OUNoise:
+    def __init__(self, mu, theta=.2, sigma=0.15, dt=1e-2, x0=None):
+        self.theta = theta
+        self.mu = mu
+        self.sigma = sigma
+        self.dt = dt
+        self.x0 = x0
+        self.reset()
+
+    def __call__(self):
+        x = self.x_prev + self.theta * (self.mu - self.x_prev) * self.dt + \
+            self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
+        self.x_prev = x
+        return x
+
+    def reset(self):
+        self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
+
+    def __repr__(self):
+        return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
+
 
 def build_summaries():
     episode_reward = tf.Variable(0.)
@@ -279,10 +300,9 @@ def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
 
         for j in range(args['max_episodes_len']):
             start_time = time.time()  
-
-            action = actor.predict(np.reshape(state, [1, s_dim]))
-            ## noise    
-            
+            ## noise 
+            action = actor.predict(np.reshape(state, [1, s_dim])) + actor_noise()
+               
             next_state, reward, done, info = env.step(action[0])
             ep_reward += reward
            
@@ -341,9 +361,9 @@ def main(args):
         critic = Critic(sess, s_dim, a_dim, actor.get_num_trainable_vars(),
                         float(args['gamma']), float(args['tau']), float(args['critic_lr']))
 
-        #exploration = StochasticPolicy(a_dim, int(args['action_item_num']))
+        actor_noise = OUNoise(mu=np.zeros(a_dim))
 
-        train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args)
+        train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args)
         
 
 if __name__ == '__main__':
