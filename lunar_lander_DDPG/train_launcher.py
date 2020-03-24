@@ -240,7 +240,6 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     next_state_batch = np.array([_[3] for _ in samples])
     done_batch = np.array([_[4] for _ in samples])
 
-    # The dimension of action_weight_batch is (batch_size, action_item_num, embedding), (32, 4, 30)
     next_action_batch = actor.predict_target(state_batch) 
     #print(f"action_batch : {action_batch.shape}")
     #print(f"next_action_batch : {next_action_batch.shape}") 
@@ -364,15 +363,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="provide arguments for DDPG agent")
 
     # agent parameters
-    parser.add_argument("--actor_lr", help="actor network learning rate", default=0.001)
-    parser.add_argument("--critic_lr", help="critic network learning rate", default=0.001)
-    parser.add_argument("--gamma", help="discount factor for critic updates", default=0.75)
+    parser.add_argument("--actor_lr", help="actor network learning rate", default=0.00005)
+    parser.add_argument("--critic_lr", help="critic network learning rate", default=0.0005)
+    parser.add_argument("--gamma", help="discount factor for critic updates", default=0.99)
     parser.add_argument("--tau", help="soft target update parameter", default=0.001)
     parser.add_argument("--buffer_size", help="max size of the replay buffer", default=1000000)
     parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=64)  # default = 64
 
     # run parameters
-    parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=500)
+    parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=1000)
     parser.add_argument("--max_episodes_len", help="max length of 1 episode", default=1000)    # defult = 100
     parser.add_argument("--summary_dir", help="directory for storing tensorboard info", default='./results')
     parser.add_argument("--restore", help="restore from previous trained model", default = False)
