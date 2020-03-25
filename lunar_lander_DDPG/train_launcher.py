@@ -305,6 +305,9 @@ def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tenso
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
             
+            print(f"state : {state.shape}")
+            print(f"action : {action.shape}")
+
             if replay_buffer.size() > int(args['batch_size']):
                 critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), s_dim, a_dim)
                 ep_critic_loss += critic_loss
