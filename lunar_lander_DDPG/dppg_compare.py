@@ -326,8 +326,8 @@ if __name__ == '__main__':
         action_bound = env.action_space.high
 
         actor_noise = OUNoise(mu=np.zeros(action_dim))
-        actor = ActorNetwork(sess, state_dim, action_dim, min_batch, tau, actor_lr)
-        critic = CriticNetwork(sess, state_dim, action_dim, actor.get_num_trainable_vars(), gamma, tau, critic_lr)
+        actor = Actor(sess, state_dim, action_dim, min_batch, tau, actor_lr)
+        critic = Critic(sess, state_dim, action_dim, actor.get_num_trainable_vars(), gamma, tau, critic_lr)
         scores = train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep)
 
 
