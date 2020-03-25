@@ -53,8 +53,7 @@ class Actor(object):
             self.params_gradients = list(                                       
                 map(
                     lambda x: tf.math.divide(x, self.batch_size),              
-                    tf.gradients(tf.reshape(self.action, [self.batch_size, self.a_dim]),          # tf.gradients(ys, xs, grad_ys=None, name='gradients')
-                                 self.network_params, -self.a_gradient)                           # chain_rule
+                    tf.gradients(self.action, self.network_params, -self.a_gradient)                           # chain_rule
                 )
             )
            
