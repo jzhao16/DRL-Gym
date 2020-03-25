@@ -273,7 +273,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
                 y.append(rewards[k] + critic.gamma * target_q[k] * (1-dones[k]))
 
             # Update the critic given the targets
-            predicted_q_value, _ = critic.train(states, actions, np.reshape(y, (min_batch, 1)))
+            predicted_q_value, _, _ = critic.train(states, actions, np.reshape(y, (min_batch, 1)))
 
             # Update the actor policy using the sampled gradient
             a_outs = actor.predict(states)
