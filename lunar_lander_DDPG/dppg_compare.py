@@ -67,9 +67,11 @@ class Actor(object):
         """build the tensorflow graph"""
         with tf.compat.v1.variable_scope(scope):
             state = tf.compat.v1.placeholder(tf.float32, [None, self.s_dim], "state")                         # (1, 360)
-            hidden1 = keras.layers.Dense(200, activation='relu', use_bias=False)(state)
-            hidden2 = keras.layers.Dense(64, activation='relu', use_bias=False)(hidden1)
-            output = keras.layers.Dense(self.a_dim, activation='tanh', use_bias=False)(hidden2)
+            hidden1 = keras.layers.Dense(400, activation='relu', use_bias=False)(state)
+            batchNorm1 = tf.keras.layers.BatchNormalization(axis=-1)(hidden1)
+            hidden2 = keras.layers.Dense(200, activation='relu', use_bias=False)(batchNorm1)
+            batchNorm2 = tf.keras.layers.BatchNormalization(axis=-1)(hidden2)
+            output = keras.layers.Dense(self.a_dim, activation='tanh', use_bias=False)(batchNorm2)
         return state, output
 
     def train(self, state, a_gradient):
@@ -142,9 +144,10 @@ class Critic(object):
         with tf.compat.v1.variable_scope(scope):
             state = tf.compat.v1.placeholder(tf.float32, [None, self.s_dim], "state")    #(1, 360)
             action = tf.compat.v1.placeholder(tf.float32, [None, self.a_dim], "action")  #(1, 120)
-            inputs = tf.concat([state, action], axis=-1)                                 #(1, 480) 
-            layer1 = keras.layers.Dense(120, activation='relu', use_bias=False)(inputs)
-            layer2 = keras.layers.Dense(32, activation='relu', use_bias=False)(layer1)
+            #inputs = tf.concat([state, action], axis=-1)                                 #(1, 480) 
+            layer1 = keras.layers.Dense(400, activation='relu', use_bias=False)(state)
+            concat = tf.concat([layer1, action], 1)
+            layer2 = keras.layers.Dense(300, activation='relu', use_bias=False)(concat)
             q_value = tf.compat.v1.layers.Dense(1, activation=None, use_bias=False)(layer2)
             return state, action, q_value
 
