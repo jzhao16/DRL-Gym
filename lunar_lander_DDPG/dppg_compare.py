@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Created by py2pi on 2019/08/08
-"""
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
@@ -173,13 +168,18 @@ class Critic(object):
 
 
 class ReplayBuffer(object):
-    def __init__(self, buffer_size):
+
+    def __init__(self, buffer_size, random_seed=123):
+        """
+        The right side of the deque contains the most recent experiences
+        """
         self.buffer_size = buffer_size
         self.count = 0
         self.buffer = deque()
+        random.seed(random_seed)
 
-    def add(self, state, action, reward, next_state, done):
-        experience = (state, action, reward, next_state, done)
+    def add(self, s, a, r, t, s2):
+        experience = (s, a, r, t, s2)
         if self.count < self.buffer_size:
             self.buffer.append(experience)
             self.count += 1
@@ -191,11 +191,25 @@ class ReplayBuffer(object):
         return self.count
 
     def sample_batch(self, batch_size):
-        return random.sample(self.buffer, batch_size)
+        batch = []
+
+        if self.count < batch_size:
+            batch = random.sample(self.buffer, self.count)
+        else:
+            batch = random.sample(self.buffer, batch_size)
+
+        s_batch = np.array([_[0] for _ in batch])
+        a_batch = np.array([_[1] for _ in batch])
+        r_batch = np.array([_[2] for _ in batch])
+        t_batch = np.array([_[3] for _ in batch])
+        s2_batch = np.array([_[4] for _ in batch])
+
+        return s_batch, a_batch, r_batch, t_batch, s2_batch
 
     def clear(self):
         self.buffer.clear()
         self.count = 0
+
 
 class OUNoise:
     def __init__(self, mu, theta=.2, sigma=0.15, dt=1e-2, x0=None):
@@ -218,174 +232,102 @@ class OUNoise:
     def __repr__(self):
         return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
 
+def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
-def build_summaries():
-    episode_reward = tf.Variable(0.)
-    tf.compat.v1.summary.scalar("reward", episode_reward)
-    critic_loss = tf.Variable(0.)
-    tf.compat.v1.summary.scalar("critic_loss", critic_loss)
+    sess.run(tf.global_variables_initializer())
 
-    summary_vars = [episode_reward, critic_loss]
-    summary_ops = tf.compat.v1.summary.merge_all()
-    return summary_ops, summary_vars
-
-
-def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
-
-    #print('---------- Learn from Batch ----------')
-    samples = replay_buffer.sample_batch(batch_size)
-    state_batch = np.array([_[0] for _ in samples])        # (32, 360) 
-    action_batch = np.array([_[1] for _ in samples])       # (32, 120)
-    reward_batch = np.array([_[2] for _ in samples])       # (32,)
-    next_state_batch = np.array([_[3] for _ in samples])
-    done_batch = np.array([_[4] for _ in samples])
-
-    next_action_batch = actor.predict_target(next_state_batch) 
-    #print(f"action_batch : {action_batch.shape}")
-    #print(f"next_action_batch : {next_action_batch.shape}") 
-    # Q(s',a')
-    target_q_batch = critic.predict_target(next_state_batch.reshape((-1, s_dim)), next_action_batch.reshape((-1, a_dim)))  # (32, 1)
-
-    # y_batch is Q(s,a) calcualed from Bellman's equation
-    y_batch = np.add(reward_batch, np.squeeze(target_q_batch) * critic.gamma * (1-done_batch))[:,np.newaxis]  # (32, 1)
-
-    # train Critic online network (learn an action-value function Q(state, action)), q_value seems to be the functional approximation of y_batch
-    q_value, critic_loss, _ = critic.train(state_batch, action_batch, y_batch)
-    
-    # train actor
-    action_batch_for_gradients = actor.predict(state_batch)
-
-    # action_gradient
-    action_gradient_batch = critic.action_gradients(state_batch, action_batch_for_gradients.reshape((-1, a_dim)))   # action_gradient_batch, list, size = 1
-    actor.train(state_batch, action_gradient_batch[0])
-
-    # update target networks
+    # Initialize target network weights
     actor.update_target_network()
     critic.update_target_network()
-    # return q value and critic loss from batch
-    return critic_loss
 
+    # Initialize replay memory
+    replay_buffer = ReplayBuffer(buffer_size, 0)
 
-def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args):
-    # set up summary operators
-    summary_ops, summary_vars = build_summaries()
-    sess.run(tf.compat.v1.global_variables_initializer())
-    writer = tf.compat.v1.summary.FileWriter(args['summary_dir'], sess.graph)
+    max_episodes = ep
+    max_steps = 3000
+    score_list = []
 
-    # initialize target network weights
-    actor.hard_update_target_network()
-    critic.hard_update_target_network()
+    for i in range(max_episodes):
 
-    # initialize replay memory
-    replay_buffer = ReplayBuffer(int(args['buffer_size']))
+        state = env.reset()
+        score = 0
 
-    # create saver object
-    saver = tf.compat.v1.train.Saver(max_to_keep=5)
+        for j in range(max_steps):
 
-    # restore the latest checkpoint of the model
-    if bool(args['restore']) == True:
-        saver.restore(sess, tf.train.latest_checkpoint('./model'))
-    
-    for i in range(int(args['max_episodes'])):
-        state = env.reset()   # take one random sample from simulator
-        ep_reward = 0.0
-        ep_critic_loss = 0.0
+            # env.render()
 
-        for j in range(args['max_episodes_len']):
-            start_time = time.time()  
-            ## noise 
-            action = actor.predict(np.reshape(state, [1, s_dim])) + actor_noise()
-               
+            action = actor.predict(np.reshape(state, (1, actor.s_dim))) + actor_noise()
             next_state, reward, done, info = env.step(action[0])
-            ep_reward += reward
-           
-            replay_buffer.add(state.reshape((s_dim,)),
-                              action.reshape((a_dim,)),
-                              reward,
-                              next_state.reshape((s_dim,)),  #(1, 8) to (8, )
-                              done)
-            
-            print(f"state : {state.shape}")
-            print(f"action : {action.shape}")
+            replay_buffer.add(np.reshape(state, (actor.s_dim,)), np.reshape(action, (actor.a_dim,)), reward,
+                              done, np.reshape(next_state, (actor.s_dim,)))
 
-            if replay_buffer.size() < int(args['batch_size']):
+            # updating the network in batch
+            if replay_buffer.size() < min_batch:
                 continue
-            
-            critic_loss = learn_from_batch(replay_buffer, actor, critic, int(args['batch_size']), s_dim, a_dim)
-            ep_critic_loss += critic_loss
 
-            # move to next state 
+            states, actions, rewards, dones, next_states = replay_buffer.sample_batch(min_batch)
+            target_q = critic.predict_target(next_states, actor.predict_target(next_states))
+
+            y = []
+            for k in range(min_batch):
+                y.append(rewards[k] + critic.gamma * target_q[k] * (1-dones[k]))
+
+            # Update the critic given the targets
+            predicted_q_value, _ = critic.train(states, actions, np.reshape(y, (min_batch, 1)))
+
+            # Update the actor policy using the sampled gradient
+            a_outs = actor.predict(states)
+            grads = critic.action_gradients(states, a_outs)
+            actor.train(states, grads[0])
+
+            # Update target networks
+            actor.update_target_network()
+            critic.update_target_network()
+
             state = next_state
-            ## global step += 1
-            current_step = tf.compat.v1.train.global_step(sess, global_step_tensor) - 1 
-            #print('current_step is %d' %current_step) 
-
-            summary_str = sess.run(summary_ops, feed_dict={summary_vars[0]: ep_reward, summary_vars[1]: ep_critic_loss})
-            writer.add_summary(summary_str, i)
-
-            end_time = time.time()
+            score += reward
 
             if done:
+                print('Reward: {} | Episode: {}/{}'.format(int(score), i, max_episodes))
                 break
-            #print(f"--- Total Training Time : {(end_time - start_time):.3f} seconds ---")
-                    
-        logger.info(f"========== Episode {i}, Total {j+1} Rounds : Reward {ep_reward:.3f}, Loss {ep_critic_loss:.3f} =========")
-        # save the model to the checkpoint file
-        path = saver.save(sess, './model/drl-model', global_step=current_step) 
-    writer.close()
 
+        score_list.append(score)
 
-def main(args):
-    # init memory data
-    # data = load_data()
-    
-    gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.90)
-    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options)) as sess:
-    ## specify particular gpu to use     
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '1'
+        avg = np.mean(score_list[-100:])
+        print("Average of last 100 episodes: {0:.2f} \n".format(avg))
 
-        # gym environment
-        env = gym.make('LunarLanderContinuous-v2')
-        # state total dimension  
-        s_dim = 8
-        # action toal dimension
-        a_dim = 2
-        # initialize global_step variable with 0
-        global_step_tensor = tf.Variable(0, name="global_step", trainable=False)
+        if avg > 200:
+            print('Task Completed')
+            break
 
-        actor = Actor(sess, s_dim, a_dim, int(args['batch_size']), float(args['tau']),
-                      float(args['actor_lr']), global_step_tensor = global_step_tensor )
+    return score_list
 
-        critic = Critic(sess, s_dim, a_dim, actor.get_num_trainable_vars(),
-                        float(args['gamma']), float(args['tau']), float(args['critic_lr']))
-
-        actor_noise = OUNoise(mu=np.zeros(a_dim))
-
-        train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args)
-        
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="provide arguments for DDPG agent")
 
-    # agent parameters
-    parser.add_argument("--actor_lr", help="actor network learning rate", default=0.00005)
-    parser.add_argument("--critic_lr", help="critic network learning rate", default=0.0005)
-    parser.add_argument("--gamma", help="discount factor for critic updates", default=0.99)
-    parser.add_argument("--tau", help="soft target update parameter", default=0.001)
-    parser.add_argument("--buffer_size", help="max size of the replay buffer", default=1000000)
-    parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=64)  # default = 64
+    with tf.Session() as sess:
 
-    # run parameters
-    parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=1000)
-    parser.add_argument("--max_episodes_len", help="max length of 1 episode", default=1000)    # defult = 100
-    parser.add_argument("--summary_dir", help="directory for storing tensorboard info", default='./results')
-    parser.add_argument("--restore", help="restore from previous trained model", default = False)
+        env = gym.make('LunarLanderContinuous-v2')
 
-    args_ = vars(parser.parse_args())
-    logger.info(pp.pformat(args_))
+        env.seed(0)
+        np.random.seed(0)
+        tf.set_random_seed(0)
 
-    main(args_)
+        ep = 2000
+        tau = 0.001
+        gamma = 0.99
+        min_batch = 64
+        actor_lr = 0.00005
+        critic_lr = 0.0005
+        buffer_size = 1000000
 
+        state_dim = env.observation_space.shape[0]
+        action_dim = env.action_space.shape[0]
+        action_bound = env.action_space.high
 
+        actor_noise = OUNoise(mu=np.zeros(action_dim))
+        actor = ActorNetwork(sess, state_dim, action_dim, min_batch, tau, actor_lr)
+        critic = CriticNetwork(sess, state_dim, action_dim, actor.get_num_trainable_vars(), gamma, tau, critic_lr)
+        scores = train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep)
 
 
