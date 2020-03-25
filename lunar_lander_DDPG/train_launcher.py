@@ -240,7 +240,7 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     next_state_batch = np.array([_[3] for _ in samples])
     done_batch = np.array([_[4] for _ in samples])
 
-    next_action_batch = actor.predict_target(state_batch) 
+    next_action_batch = actor.predict_target(next_state_batch) 
     #print(f"action_batch : {action_batch.shape}")
     #print(f"next_action_batch : {next_action_batch.shape}") 
     # Q(s',a')
