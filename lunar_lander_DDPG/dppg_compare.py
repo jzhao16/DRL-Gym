@@ -234,7 +234,7 @@ class OUNoise:
 
 def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.compat.v1.global_variables_initializer())
 
     # Initialize target network weights
     actor.update_target_network()
@@ -305,13 +305,13 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
 if __name__ == '__main__':
 
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
 
         env = gym.make('LunarLanderContinuous-v2')
 
         env.seed(0)
         np.random.seed(0)
-        tf.set_random_seed(0)
+        tf.compat.v1.set_random_seed(0)
 
         ep = 2000
         tau = 0.001
