@@ -260,9 +260,9 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
             # env.render()
 
             action = actor.predict(np.reshape(state, (1, actor.s_dim))) + actor_noise()
-            print(f"action : {action.shape}")
+            #print(f"action : {action.shape}")
             next_state, reward, done, info = env.step(action[0])
-            print(f"next_state : {next_state.shape}")
+            #print(f"next_state : {next_state.shape}")
             replay_buffer.add(np.reshape(state, (actor.s_dim,)), np.reshape(action, (actor.a_dim,)), reward,
                               done, np.reshape(next_state, (actor.s_dim,)))
 
