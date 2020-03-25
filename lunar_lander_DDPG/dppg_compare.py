@@ -145,8 +145,10 @@ class Critic(object):
             action = tf.compat.v1.placeholder(tf.float32, [None, self.a_dim], "action")  #(1, 120)
             #inputs = tf.concat([state, action], axis=-1)                                 #(1, 480) 
             layer1 = keras.layers.Dense(400, activation='relu', use_bias=False)(state)
-            concat = tf.concat([layer1, action], 1)
-            layer2 = keras.layers.Dense(300, activation='relu', use_bias=False)(concat)
+            batchNorm1 = tf.keras.layers.BatchNormalization(axis=-1)(layer1)
+            layer2 = keras.layers.Dense(200, activation='relu', use_bias=False)(action)
+            batchNorm2 = tf.keras.layers.BatchNormalization(axis=-1)(layer2)
+            concat = tf.concat([batchNorm1, batchNorm2], 1)
             q_value = tf.compat.v1.layers.Dense(1, activation=None, use_bias=False)(layer2)
             return state, action, q_value
 
@@ -259,7 +261,9 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
             # env.render()
 
             action = actor.predict(np.reshape(state, (1, actor.s_dim))) + actor_noise()
+            print(f"action : {action.shape}")
             next_state, reward, done, info = env.step(action[0])
+            print(f"next_state : {next_state.shape}")
             replay_buffer.add(np.reshape(state, (actor.s_dim,)), np.reshape(action, (actor.a_dim,)), reward,
                               done, np.reshape(next_state, (actor.s_dim,)))
 
