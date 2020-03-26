@@ -261,9 +261,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
             action = actor.predict(np.reshape(state, (1, actor.s_dim))) +actor_noise()
             noise = actor_noise()
-            print(f"action : {action}, shape: {action.shape}")   #(1,2)
-            print(f"noise: {noise}, shape: {noise.shape}")       #(2, ) 
-            action = action + noise
+            # no noise
 	
             next_state, reward, done, info = env.step(action[0])
             #print(f"next_state : {next_state.shape}")
@@ -277,7 +275,6 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
             states, actions, rewards, dones, next_states = replay_buffer.sample_batch(min_batch)
             target_q = critic.predict_target(next_states, actor.predict_target(next_states))
             action_batch = actor.predict_target(next_states)
-            print(f"action_batch : {action_batch.shape}")
 
             y = []
             for k in range(min_batch):
@@ -288,7 +285,6 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
             # Update the actor policy using the sampled gradient
             a_outs = actor.predict(states)
-            print(f"a_outs : {a_outs.shape}")
             grads = critic.action_gradients(states, a_outs)
             actor.train(states, grads[0])
 
