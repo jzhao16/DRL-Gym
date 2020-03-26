@@ -300,7 +300,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
         avg = np.mean(score_list[-100:])
         print("Average of last 100 episodes: {0:.2f} \n".format(avg))
 
-        if avg > 200:
+        if avg > 250:
             print('Task Completed')
             break
 
