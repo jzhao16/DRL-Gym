@@ -259,7 +259,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
             # env.render()
 
-            action = actor.predict(np.reshape(state, (1, actor.s_dim))) +actor_noise()
+            action = actor.predict(np.reshape(state, (1, actor.s_dim))) 
             noise = actor_noise()
             # no noise
 	
