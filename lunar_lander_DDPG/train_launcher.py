@@ -243,7 +243,7 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     return critic_loss
 
 
-def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args):
+def train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args):
     # set up summary operators
     summary_ops, summary_vars = build_summaries()
     sess.run(tf.compat.v1.global_variables_initializer())
@@ -335,9 +335,7 @@ def main(args):
         critic = Critic(sess, s_dim, a_dim, actor.get_num_trainable_vars(),
                         float(args['gamma']), float(args['tau']), float(args['critic_lr']))
 
-        actor_noise = OUNoise(mu=np.zeros(a_dim))
-
-        train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tensor, args)
+        train(sess, env, actor, critic, s_dim, a_dim, global_step_tensor, args)
         
 
 if __name__ == '__main__':
