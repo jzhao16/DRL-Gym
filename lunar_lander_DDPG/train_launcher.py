@@ -72,9 +72,9 @@ class Actor(object):
         """build the tensorflow graph"""
         with tf.compat.v1.variable_scope(scope):
             state = tf.compat.v1.placeholder(tf.float32, [None, self.s_dim], "state")                         # (1, 360)
-            hidden1 = keras.layers.Dense(200, activation='relu', use_bias=False)(state)
-            hidden2 = keras.layers.Dense(64, activation='relu', use_bias=False)(hidden1)
-            output = keras.layers.Dense(self.a_dim, activation='tanh', use_bias=False)(hidden2)
+            hidden1 = keras.layers.Dense(400, activation='relu')(state)
+            hidden2 = keras.layers.Dense(300, activation='relu')(hidden1)
+            output = keras.layers.Dense(self.a_dim, activation='tanh')(hidden2)
         return state, output
 
     def train(self, state, a_gradient):
@@ -147,10 +147,10 @@ class Critic(object):
         with tf.compat.v1.variable_scope(scope):
             state = tf.compat.v1.placeholder(tf.float32, [None, self.s_dim], "state")    #(1, 360)
             action = tf.compat.v1.placeholder(tf.float32, [None, self.a_dim], "action")  #(1, 120)
-            inputs = tf.concat([state, action], axis=-1)                                 #(1, 480) 
-            layer1 = keras.layers.Dense(120, activation='relu', use_bias=False)(inputs)
-            layer2 = keras.layers.Dense(32, activation='relu', use_bias=False)(layer1)
-            q_value = tf.compat.v1.layers.Dense(1, activation=None, use_bias=False)(layer2)
+            layer1 = keras.layers.Dense(400, activation='relu')(state)
+            concat = tf.concat([layer1, action], 1)
+            layer2 = keras.layers.Dense(300, activation='relu')(concat)
+            q_value = tf.compat.v1.layers.Dense(1, activation=None)(layer2)
             return state, action, q_value
 
     def train(self, state, action, predicted_q_value):
@@ -197,27 +197,6 @@ class ReplayBuffer(object):
         self.buffer.clear()
         self.count = 0
 
-class OUNoise:
-    def __init__(self, mu, theta=.2, sigma=0.15, dt=1e-2, x0=None):
-        self.theta = theta
-        self.mu = mu
-        self.sigma = sigma
-        self.dt = dt
-        self.x0 = x0
-        self.reset()
-
-    def __call__(self):
-        x = self.x_prev + self.theta * (self.mu - self.x_prev) * self.dt + \
-            self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
-        self.x_prev = x
-        return x
-
-    def reset(self):
-        self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
-
-    def __repr__(self):
-        return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
-
 
 def build_summaries():
     episode_reward = tf.Variable(0.)
@@ -241,8 +220,6 @@ def learn_from_batch(replay_buffer, actor, critic, batch_size, s_dim, a_dim):
     done_batch = np.array([_[4] for _ in samples])
 
     next_action_batch = actor.predict_target(next_state_batch) 
-    #print(f"action_batch : {action_batch.shape}")
-    #print(f"next_action_batch : {next_action_batch.shape}") 
     # Q(s',a')
     target_q_batch = critic.predict_target(next_state_batch.reshape((-1, s_dim)), next_action_batch.reshape((-1, a_dim)))  # (32, 1)
 
@@ -293,8 +270,10 @@ def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tenso
 
         for j in range(args['max_episodes_len']):
             start_time = time.time()  
-            ## noise 
-            action = actor.predict(np.reshape(state, [1, s_dim])) + actor_noise()
+            
+            action = actor.predict(np.reshape(state, [1, s_dim])) 
+            noise = np.random.randn(1, 2)/4.0  # normal gussian noise
+            action = action + noise
                
             next_state, reward, done, info = env.step(action[0])
             ep_reward += reward
@@ -304,9 +283,6 @@ def train(sess, env, actor, critic, actor_noise, s_dim, a_dim, global_step_tenso
                               reward,
                               next_state.reshape((s_dim,)),  #(1, 8) to (8, )
                               done)
-            
-            print(f"state : {state.shape}")
-            print(f"action : {action.shape}")
 
             if replay_buffer.size() < int(args['batch_size']):
                 continue
@@ -376,7 +352,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help="size of minibatch for minbatch-SGD", default=64)  # default = 64
 
     # run parameters
-    parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=1000)
+    parser.add_argument("--max_episodes", help="max num of episodes to do while training", default=2000)
     parser.add_argument("--max_episodes_len", help="max length of 1 episode", default=1000)    # defult = 100
     parser.add_argument("--summary_dir", help="directory for storing tensorboard info", default='./results')
     parser.add_argument("--restore", help="restore from previous trained model", default = False)
