@@ -259,8 +259,12 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
 
             # env.render()
 
-            action = actor.predict(np.reshape(state, (1, actor.s_dim))) + actor_noise()
-            #print(f"action : {action.shape}")
+            action = actor.predict(np.reshape(state, (1, actor.s_dim))) +actor_noise()
+            noise = actor_noise()
+            print(f"action : {action.shape}")
+            print(f"noise: {noise.shape}")
+            action = action + noise
+	
             next_state, reward, done, info = env.step(action[0])
             #print(f"next_state : {next_state.shape}")
             replay_buffer.add(np.reshape(state, (actor.s_dim,)), np.reshape(action, (actor.a_dim,)), reward,
@@ -293,7 +297,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
             score += reward
 
             if done:
-                print('Reward: {} | Episode: {}/{}'.format(int(score), i, max_episodes))
+                print('Reward: {} | Episode: {}/{} | Rounds {}'.format(score, i, max_episodes, j))
                 break
 
         score_list.append(score)
