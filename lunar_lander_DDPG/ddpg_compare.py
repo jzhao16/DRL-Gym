@@ -256,7 +256,7 @@ def train(sess, env, actor, critic, actor_noise, buffer_size, min_batch, ep):
             # env.render()
 
             action = actor.predict(np.reshape(state, (1, actor.s_dim))) 
-            noise = np.random.randn(1, 2)/20  # normal gussian noise
+            noise = np.random.randn(1, 2)/4.0  # normal gussian noise
             action = action + noise
 	
             next_state, reward, done, info = env.step(action[0])
